@@ -18,6 +18,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 _bobTargetDefaultPos;
     private Vector3 _bobOffset;
     private float _currentCamY;
+    //private bool _isInitialized = false;
 
     [Header ("Move Settings")]
     public float walkSpeed = 5f;
@@ -54,8 +55,13 @@ public class PlayerController : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         _bobTargetDefaultPos = cameraBobTarget.localPosition;
-        _defaultCamPos = cameraHolder.localPosition;
         _currentCamY = cameraHolder.localPosition.y;
+        //_currentCamY = standHeight;
+
+        //cameraHolder.localPosition = new Vector3(cameraHolder.localPosition.x, _currentCamY, cameraHolder.localPosition.z);
+
+        //_isInitialized = true;
+        //_defaultCamPos = cameraHolder.localPosition;
     }
 
     // Update is called once per frame
@@ -129,6 +135,9 @@ public class PlayerController : MonoBehaviour
     private void SmoothCameraHeight()
     {
         float targetY = _isCrouching ? crouchHeight * 0.85f : standHeight * 0.9f;
+        //float targetY = _isCrouching ? crouchHeight : standHeight;
+
+        //if (_isInitialized) { _currentCamY = targetY; }
 
         _currentCamY = Mathf.Lerp(_currentCamY, targetY, Time.deltaTime * crouchSmooth);
         if (Mathf.Abs(_currentCamY - targetY) < 0.001f) _currentCamY = targetY;
