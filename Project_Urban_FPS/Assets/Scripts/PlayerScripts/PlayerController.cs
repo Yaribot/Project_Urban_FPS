@@ -6,19 +6,19 @@ public class PlayerController : MonoBehaviour
 {
     private PlayerInputActions _inputActions;
     private CharacterController _characterController;
-    private Vector2 _moveInput;
-    private Vector2 _lookInput;
     private Vector3 _velocity;
-    private bool _jumpPressed;
-    private bool _isSprinting;
-    private bool _isCrouching;
-    private float _xRotation = 0f;
     private float _bobTimer = 0f;
     private Vector3 _defaultCamPos;
     private Vector3 _bobTargetDefaultPos;
     private Vector3 _bobOffset;
     private float _currentCamY;
     //private bool _isInitialized = false;
+    public Vector2 MoveInput {  get; private set; }
+    public Vector2 LookInput { get; private set;}
+    public float XRotation { get; private set; } = 0f;
+    public bool JumpPressed {  get; private set; }
+    public bool IsSprinting {  get; private set; }
+    public bool IsCrouching {  get; private set; }
 
     [Header ("Move Settings")]
     public float walkSpeed = 5f;
@@ -88,15 +88,15 @@ public class PlayerController : MonoBehaviour
         if (_characterController.isGrounded && _velocity.y < 0) _velocity.y = -2f;
 
         // Jump (consumed once per press)
-        if (_jumpPressed && _characterController.isGrounded)
+        if (JumpPressed && _characterController.isGrounded)
         {
             _velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            _jumpPressed = false;
+            JumpPressed = false;
         }
 
         // Horizontal move
-        float speed = _isCrouching ? crouchSpeed : _isSprinting ? sprintSpeed : walkSpeed;
-        Vector3 move = (transform.right * _moveInput.x + transform.forward * _moveInput.y).normalized;
+        float speed = IsCrouching ? crouchSpeed : IsSprinting ? sprintSpeed : walkSpeed;
+        Vector3 move = (transform.right * MoveInput.x + transform.forward * MoveInput.y).normalized;
         if (move.magnitude < 0.1f) move = Vector3.zero; // dead-zone
 
         _characterController.Move((move * speed + _velocity) * Time.deltaTime);
@@ -108,18 +108,18 @@ public class PlayerController : MonoBehaviour
     private void LookRotation()
     {
         // Horizontal — rotate whole player body
-        transform.Rotate(Vector3.up * _lookInput.x * mouseSensitivity);
+        transform.Rotate(Vector3.up * LookInput.x * mouseSensitivity);
 
         // Vertical — tilt CameraHolder only, clamped
-        _xRotation -= _lookInput.y * mouseSensitivity;
-        _xRotation = Mathf.Clamp(_xRotation, -80f, 80f);
-        cameraHolder.localRotation = Quaternion.Euler(_xRotation, 0f, 0f);
+        XRotation -= LookInput.y * mouseSensitivity;
+        XRotation = Mathf.Clamp(XRotation, -80f, 80f);
+        cameraHolder.localRotation = Quaternion.Euler(XRotation, 0f, 0f);
     }
 
     private void ToggleCrouch()
     {
         // Trying to stand? Check ceiling first
-        if (_isCrouching)
+        if (IsCrouching)
         {
             bool blocked = Physics.SphereCast(
                 transform.position, 0.3f, Vector3.up,
@@ -127,14 +127,14 @@ public class PlayerController : MonoBehaviour
             if (blocked) return;
         }
 
-        _isCrouching = !_isCrouching;
-        _characterController.height = _isCrouching ? crouchHeight : standHeight;
+        IsCrouching = !IsCrouching;
+        _characterController.height = IsCrouching ? crouchHeight : standHeight;
         _characterController.center = Vector3.up * (_characterController.height * 0.5f);
     }
 
     private void SmoothCameraHeight()
     {
-        float targetY = _isCrouching ? crouchHeight * 0.85f : standHeight * 0.9f;
+        float targetY = IsCrouching ? crouchHeight * 0.85f : standHeight * 0.9f;
         //float targetY = _isCrouching ? crouchHeight : standHeight;
 
         //if (_isInitialized) { _currentCamY = targetY; }
@@ -147,8 +147,8 @@ public class PlayerController : MonoBehaviour
 
     private void UpdateFOV()
     {
-        float target = _isCrouching ? crouchFOV
-                 : _isSprinting ? sprintFOV
+        float target = IsCrouching ? crouchFOV
+                 : IsSprinting ? sprintFOV
                  : normalFOV;
 
         float current = cinemachineCam.Lens.FieldOfView;
@@ -157,12 +157,12 @@ public class PlayerController : MonoBehaviour
 
     private void HandleHeadBob()
     {
-        bool moving = _moveInput.magnitude > 0.1f;
+        bool moving = MoveInput.magnitude > 0.1f;
 
         if (_characterController.isGrounded && moving)
         {
             _bobTimer += Time.deltaTime * bobFrequency
-                      * (_isSprinting ? 1.4f : 1f); // faster bob while sprinting
+                      * (IsSprinting ? 1.4f : 1f); // faster bob while sprinting
 
             _bobOffset = new Vector3(
                 Mathf.Sin(_bobTimer * 0.5f) * bobAmplitude * 0.5f, Mathf.Abs(Mathf.Sin(_bobTimer)) * bobAmplitude, 0f);
@@ -177,22 +177,34 @@ public class PlayerController : MonoBehaviour
         cameraBobTarget.localPosition = _bobTargetDefaultPos + _bobOffset;
     }
 
-    void OnEnable()
+
+
+    public void EnablingPlayerInputs()
     {
         _inputActions.Player.Enable();
-        _inputActions.Player.Move.performed += callBackContext => _moveInput = callBackContext.ReadValue<Vector2>();
-        _inputActions.Player.Move.canceled += callBackContext => _moveInput = Vector2.zero;
-        _inputActions.Player.Look.performed += callBackContext => _lookInput = callBackContext.ReadValue<Vector2>();
-        _inputActions.Player.Look.canceled += callBackContext => _lookInput = Vector2.zero;
-        _inputActions.Player.Jump.performed += callBackContext => _jumpPressed = true;
-        _inputActions.Player.Sprint.performed += callBackContext => _isSprinting = true;
-        _inputActions.Player.Sprint.canceled += callBackContext => _isSprinting = false;
+        _inputActions.Player.Move.performed += callBackContext => MoveInput = callBackContext.ReadValue<Vector2>();
+        _inputActions.Player.Move.canceled += callBackContext => MoveInput = Vector2.zero;
+        _inputActions.Player.Look.performed += callBackContext => LookInput = callBackContext.ReadValue<Vector2>();
+        _inputActions.Player.Look.canceled += callBackContext => LookInput = Vector2.zero;
+        _inputActions.Player.Jump.performed += callBackContext => JumpPressed = true;
+        _inputActions.Player.Sprint.performed += callBackContext => IsSprinting = true;
+        _inputActions.Player.Sprint.canceled += callBackContext => IsSprinting = false;
         _inputActions.Player.Crouch.performed += callBackContext => ToggleCrouch();
+    }
+
+    public void DisablingPlayerinputs()
+    {
+        _inputActions.Player.Disable();
+    }
+
+    void OnEnable()
+    {
+        EnablingPlayerInputs();
     }
 
     void OnDisable()
     {
-        _inputActions.Player.Disable();
+        DisablingPlayerinputs();
     }
 
 }
