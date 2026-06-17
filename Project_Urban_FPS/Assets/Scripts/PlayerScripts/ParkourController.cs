@@ -24,6 +24,9 @@ public class ParkourController : MonoBehaviour
     public float climbMaxHeight = 2.2f;
     public float vaultDuration = 0.35f;
     public float climbDuration = 0.6f;
+    public float ledgeGrabReach = 0.6f;
+    public float hangForwardOffset = 0.3f;
+
     public LayerMask climbableMask;
 
     public ParkourState State {  get; private set; } = ParkourState.None;
@@ -82,7 +85,40 @@ public class ParkourController : MonoBehaviour
     }
     private void CheckLedgeGrab()
     {
+        if (_characterController.isGrounded) return;
+        if (_playerController.VerticalVelocity >= 0) return; // still rising
 
+        Vector3 probe = transform.position
+                      + Vector3.up * ledgeGrabReach
+                      + transform.forward * hangForwardOffset;
+
+        bool ledge = Physics.Raycast(
+            probe, Vector3.down,
+            out RaycastHit hit, 0.4f, climbableMask);
+
+        if (ledge) StartCoroutine(DoLedgeGrab(hit.point));
+    }
+    IEnumerator DoLedgeGrab(Vector3 ledgePoint)
+    {
+        SetState(ParkourState.LedgeGrab);
+        _animator.CrossFade("LedgeHang", 0.15f);
+
+        // Snap so player's hands sit at ledge height
+        _characterController.enabled = false;
+        transform.position = new Vector3(
+            transform.position.x,
+            ledgePoint.y - ledgeGrabReach,
+            transform.position.z)
+            + transform.forward * hangForwardOffset;
+
+        // Hang until Jump is pressed
+        while (!_playerController.InputActions.Player.Jump.WasPressedThisFrame())
+            yield return null;
+
+        _characterController.enabled = true;
+        // Reuse DoClimb to get on top of the ledge
+        yield return StartCoroutine(
+            DoClimb(ledgePoint + transform.forward * 0.5f));
     }
     private void CheckVaultOrClimb()
     {

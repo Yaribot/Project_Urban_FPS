@@ -4,7 +4,6 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    private PlayerInputActions _inputActions;
     private CharacterController _characterController;
     private Vector3 _velocity;
     private float _bobTimer = 0f;
@@ -13,6 +12,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 _bobOffset;
     private float _currentCamY;
     //private bool _isInitialized = false;
+    public PlayerInputActions InputActions {  get; private set; }
     public Vector2 MoveInput {  get; private set; }
     public Vector2 LookInput { get; private set;}
     public float XRotation { get; private set; } = 0f;
@@ -34,6 +34,7 @@ public class PlayerController : MonoBehaviour
     public float crouchSmooth = 8f;    // lerp speed
     public float bobFrequency = 8f;
     public float bobAmplitude = 0.04f;
+    public float VerticalVelocity => _velocity.y;
 
     [Header ("Camera Settings")]
     public CinemachineCamera cinemachineCam;
@@ -45,7 +46,7 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        _inputActions = new PlayerInputActions();
+        InputActions = new PlayerInputActions();
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -181,20 +182,20 @@ public class PlayerController : MonoBehaviour
 
     public void EnablingPlayerInputs()
     {
-        _inputActions.Player.Enable();
-        _inputActions.Player.Move.performed += callBackContext => MoveInput = callBackContext.ReadValue<Vector2>();
-        _inputActions.Player.Move.canceled += callBackContext => MoveInput = Vector2.zero;
-        _inputActions.Player.Look.performed += callBackContext => LookInput = callBackContext.ReadValue<Vector2>();
-        _inputActions.Player.Look.canceled += callBackContext => LookInput = Vector2.zero;
-        _inputActions.Player.Jump.performed += callBackContext => JumpPressed = true;
-        _inputActions.Player.Sprint.performed += callBackContext => IsSprinting = true;
-        _inputActions.Player.Sprint.canceled += callBackContext => IsSprinting = false;
-        _inputActions.Player.Crouch.performed += callBackContext => ToggleCrouch();
+        InputActions.Player.Enable();
+        InputActions.Player.Move.performed += callBackContext => MoveInput = callBackContext.ReadValue<Vector2>();
+        InputActions.Player.Move.canceled += callBackContext => MoveInput = Vector2.zero;
+        InputActions.Player.Look.performed += callBackContext => LookInput = callBackContext.ReadValue<Vector2>();
+        InputActions.Player.Look.canceled += callBackContext => LookInput = Vector2.zero;
+        InputActions.Player.Jump.performed += callBackContext => JumpPressed = true;
+        InputActions.Player.Sprint.performed += callBackContext => IsSprinting = true;
+        InputActions.Player.Sprint.canceled += callBackContext => IsSprinting = false;
+        InputActions.Player.Crouch.performed += callBackContext => ToggleCrouch();
     }
 
     public void DisablingPlayerinputs()
     {
-        _inputActions.Player.Disable();
+        InputActions.Player.Disable();
     }
 
     void OnEnable()
